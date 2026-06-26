@@ -1,0 +1,1 @@
+# Mined-Core-V3-NOT-FOR-EVERYONE
