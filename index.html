@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MINED - Gamified Life Operating System for ADHD/Autism developers">
+    <meta name="theme-color" content="#08080e">
+
+    <title>MINED // CORE_OS v2</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Firebase (Optional) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mine: { bg: '#08080e', card: '#101018', elevated: '#181824', border: '#252536', muted: '#5a5a72', fg: '#e4e4f0', accent: '#f0a500', accentDim: '#a06f00', cyan: '#00e5ff', danger: '#ff3333', success: '#00ff88', epic: '#c850ff', rare: '#3b8bff' }
+                    },
+                    fontFamily: { display: ['Orbitron', 'sans-serif'], ui: ['Rajdhani', 'sans-serif'], mono: ['Share Tech Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f0a500">
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+    <div id="scanlines"></div>
+    <div id="toast-container" class="fixed top-4 right-4 z-[10000] flex flex-col gap-2 pointer-events-none"></div>
+    <div id="modal-container"></div>
+    <div id="loot-overlay" class="fixed inset-0 z-[9500] bg-black/70 items-center justify-center hidden">
+        <div id="loot-card" class="mcard p-8 text-center loot-reveal max-w-sm w-11/12"></div>
+    </div>
+
+    <!-- TOP BAR -->
+    <header
+        class="flex items-center justify-between px-4 py-2 border-b border-mine-border bg-mine-card/80 backdrop-blur-sm z-50 flex-shrink-0 flex-wrap gap-2">
+        <button id="install-app" class="mbtn mbtn-accent hidden">
+            Install App
+        </button>
+        <div class="flex items-center gap-3 flex-wrap">
+            <button id="menu-toggle" class="lg:hidden text-mine-muted hover:text-mine-accent text-xl"><i
+                    class="fas fa-bars"></i></button>
+            <div class="flex items-center gap-2">
+                <span class="font-display text-mine-accent text-base sm:text-lg font-black tracking-wider">MINED</span>
+                <span class="font-mono text-mine-muted text-xs">// CORE_OS v2</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 sm:gap-5 text-xs sm:text-sm font-mono flex-wrap">
+            <div class="flex items-center gap-2" title="Wallet"><i class="fas fa-coins text-mine-accent"></i><span
+                    id="top-wallet">₱1000</span></div>
+            <div class="flex items-center gap-2" title="Total XP"><i class="fas fa-star text-mine-accent"></i><span
+                    id="top-xp">0</span></div>
+            <div class="flex items-center gap-2" title="Streak"><i class="fas fa-fire text-orange-500"></i><span
+                    id="top-streak">0</span></div>
+            <div id="lockdown-badge"
+                class="hidden px-2 py-1 bg-red-900/50 text-red-400 rounded text-xs font-bold pulse-danger">LOCKDOWN
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <div class="flex flex-1 overflow-hidden flex-col lg:flex-row">
+        <!-- SIDEBAR -->
+        <aside id="sidebar"
+            class="w-56 flex-shrink-0 border-r border-mine-border bg-mine-card/95 border-mine-accent/30 shadow-[0_0_25px_rgba(240,165,0,0.15)] flex flex-col py-4 overflow-y-auto">
+            <nav class="flex flex-col gap-1 px-3">
+                <div class="nav-item active" data-sec="dashboard"><i class="fas fa-th-large"></i>Dashboard</div>
+                <div class="nav-item" data-sec="missions"><i class="fas fa-crosshairs"></i>Missions</div>
+                <div class="nav-item" data-sec="skills"><i class="fas fa-sitemap"></i>Skills</div>
+                <div class="nav-item" data-sec="language"><i class="fas fa-language"></i>Language</div>
+                <div class="nav-item" data-sec="communication"><i class="fas fa-microphone"></i>Communication</div>
+                <div class="nav-item" data-sec="health"><i class="fas fa-heartbeat"></i>Health</div>
+                <div class="nav-item" data-sec="hobbies"><i class="fas fa-palette"></i>Hobbies</div>
+                <div class="nav-item" data-sec="analytics"><i class="fas fa-chart-line"></i>Analytics</div>
+                <div class="nav-item" data-sec="settings"><i class="fas fa-cog"></i>Settings</div>
+            </nav>
+            <div class="mt-auto px-4 pt-4 border-t border-mine-border">
+                <div class="text-xs text-mine-muted font-mono">
+                    <div>OVERSEER LVL <span id="sidebar-ov-lvl" class="text-red-400">1</span></div>
+                    <div class="mt-1 text-[10px]" id="sidebar-ov-title">Intern</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENT -->
+        <main id="content" class="flex-1 overflow-y-auto p-3 sm:p-6">
+            <!-- DASHBOARD SECTION -->
+            <section id="sec-dashboard" class="sec-panel active">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-6 tracking-wide">COMMAND CENTER</h1>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6">
+                    <div class="mcard p-3 sm:p-4 glow-accent">
+                        <div class="text-xs text-mine-muted font-mono mb-1">WALLET</div>
+                        <div class="font-display text-xl sm:text-2xl font-black text-mine-accent" id="dash-wallet">₱1000
+                        </div>
+                    </div>
+                    <div class="mcard p-3 sm:p-4">
+                        <div class="text-xs text-mine-muted font-mono mb-1">TOTAL XP</div>
+                        <div class="font-display text-xl sm:text-2xl font-black text-mine-cyan" id="dash-xp">0</div>
+                    </div>
+                    <div class="mcard p-3 sm:p-4">
+                        <div class="text-xs text-mine-muted font-mono mb-1">STREAK</div>
+                        <div class="font-display text-xl sm:text-2xl font-black text-orange-400" id="dash-streak">0 days
+                        </div>
+                    </div>
+                    <div class="mcard p-3 sm:p-4">
+                        <div class="text-xs text-mine-muted font-mono mb-1">OVERSEER VAULT</div>
+                        <div class="font-display text-xl sm:text-2xl font-black text-red-400" id="dash-vault">₱0</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                    <div class="mcard p-4 sm:p-5 lg:col-span-2">
+                        <div class="text-xs text-mine-muted font-mono mb-3">TODAY'S PROGRESS</div>
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="text-2xl sm:text-3xl font-display font-black" id="dash-done">0</div>
+                            <div class="text-mine-muted text-xs sm:text-base">/ <span id="dash-total">0</span> missions
+                            </div>
+                        </div>
+                        <div class="xp-bar">
+                            <div class="xp-bar-fill bg-mine-accent" id="dash-progress-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">OVERSEER STATUS</div>
+                        <div class="text-red-400 font-bold text-sm mb-2" id="dash-ov-name">THE INTERN</div>
+                        <div class="text-xs text-mine-muted italic" id="dash-ov-taunt">"I shipped another feature."
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">XP TRACKS</div>
+                        <div id="dash-xp-tracks" class="space-y-3"></div>
+                    </div>
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">RECENT ACHIEVEMENTS</div>
+                        <div id="dash-achievements" class="space-y-2 text-sm"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MISSIONS SECTION -->
+            <section id="sec-missions" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-4 tracking-wide">MISSION CONTROL</h1>
+                <div class="flex gap-2 mb-4 flex-wrap" id="mission-tabs"></div>
+                <div id="mission-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3"></div>
+                <div id="active-mission-panel" class="hidden mt-6">
+                    <div class="mcard p-4 sm:p-6 glow-accent">
+                        <div class="flex items-center justify-between mb-4 flex-col sm:flex-row gap-2">
+                            <div>
+                                <div class="text-xs text-mine-muted font-mono">ACTIVE MISSION</div>
+                                <div class="font-display text-lg sm:text-xl font-bold text-mine-accent" id="am-name">
+                                </div>
+                            </div>
+                            <div class="font-mono text-mine-muted text-sm" id="am-category"></div>
+                        </div>
+                        <div class="flex items-center justify-center mb-4 overflow-x-auto">
+                            <div class="timer-ring">
+                                <svg width="220" height="220" viewBox="0 0 220 220">
+                                    <circle class="ring-bg" cx="110" cy="110" r="100" />
+                                    <circle class="ring-fg" id="am-ring" cx="110" cy="110" r="100"
+                                        stroke="var(--accent)" stroke-dasharray="628.32" stroke-dashoffset="0" />
+                                </svg>
+                                <div class="timer-text">
+                                    <div class="font-display text-4xl font-black" id="am-time">00:00</div>
+                                    <div class="text-xs text-mine-muted font-mono mt-1" id="am-mode">FOCUS</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center gap-2 sm:gap-3 mb-4 flex-wrap">
+                            <button class="mbtn mbtn-success text-sm sm:text-base" id="am-complete"><i
+                                    class="fas fa-check mr-1"></i>COMPLETE</button>
+                            <button class="mbtn mbtn-danger text-sm sm:text-base" id="am-fail"><i
+                                    class="fas fa-times mr-1"></i>FAIL</button>
+                        </div>
+                        <div>
+                            <div class="text-xs text-mine-muted font-mono mb-2">INTERRUPTIONS</div>
+                            <div class="flex flex-wrap gap-2" id="interruption-btns"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- OTHER SECTIONS (Skills, Language, Communication, Health, Hobbies, Analytics, Settings) -->
+            <!-- Imported from original file - will be in js/data.js -->
+            <section id="sec-skills" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-6 tracking-wide">SKILL MATRIX</h1>
+                <div id="skill-grid"
+                    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+                <div class="mt-6 mcard p-4 sm:p-5" id="skill-detail"></div>
+            </section>
+
+            <section id="sec-language" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-4 tracking-wide">LANGUAGE ACADEMY</h1>
+                <div class="flex gap-2 mb-4 flex-wrap" id="lang-select"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">VOCABULARY</div>
+                        <div id="lang-vocab" class="space-y-2"></div>
+                        <div class="mt-4"><button class="mbtn mbtn-cyan text-sm" id="lang-add-vocab"><i
+                                    class="fas fa-plus mr-1"></i>Add Word</button></div>
+                    </div>
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">LANGUAGE XP</div>
+                        <div id="lang-xp-display"></div>
+                        <div class="mt-4"><button class="mbtn mbtn-accent text-sm" id="lang-flashcard"><i
+                                    class="fas fa-clone mr-1"></i>Flashcard Review</button></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-communication" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-6 tracking-wide">SPEAKING ACADEMY</h1>
+                <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6" id="comm-stats"></div>
+                <div class="mcard p-4 sm:p-5 mb-4">
+                    <div class="text-xs text-mine-muted font-mono mb-3">SPEECH PRACTICE</div>
+                    <div class="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+                        <button class="mbtn mbtn-accent text-sm" id="comm-start"><i
+                                class="fas fa-microphone mr-1"></i>Start Listening</button>
+                        <button class="mbtn mbtn-danger text-sm" id="comm-stop" disabled><i
+                                class="fas fa-stop mr-1"></i>Stop</button>
+                    </div>
+                    <div id="comm-transcript"
+                        class="font-mono text-sm text-mine-muted min-h-[60px] p-3 bg-mine-bg rounded"></div>
+                    <div class="mt-3 flex gap-2 flex-wrap">
+                        <button class="mbtn mbtn-outline text-sm" id="comm-prompt">Random Prompt</button>
+                        <span class="text-sm text-mine-muted flex items-center" id="comm-prompt-text"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-health" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-4 tracking-wide">HEALTH BAY</h1>
+                <div id="health-missions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3"></div>
+            </section>
+
+            <section id="sec-hobbies" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-6 tracking-wide">HOBBY FORGE</h1>
+                <div id="hobby-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
+            </section>
+
+            <section id="sec-analytics" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-6 tracking-wide">ANALYTICS CORE</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">DAILY XP (7 DAYS)</div><canvas
+                            id="chart-daily-xp" class="max-h-64 sm:max-h-80"></canvas>
+                    </div>
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">MISSION SUCCESS RATE</div><canvas
+                            id="chart-success" class="max-h-64 sm:max-h-80"></canvas>
+                    </div>
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">FOCUS HOURS (7 DAYS)</div><canvas
+                            id="chart-focus" class="max-h-64 sm:max-h-80"></canvas>
+                    </div>
+                    <div class="mcard p-4 sm:p-5">
+                        <div class="text-xs text-mine-muted font-mono mb-3">XP BY CATEGORY</div><canvas
+                            id="chart-cat-xp" class="max-h-64 sm:max-h-80"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-settings" class="sec-panel">
+                <h1 class="font-display text-2xl font-black text-mine-accent mb-6 tracking-wide">SYSTEM CONFIG</h1>
+                <div class="mcard p-4 sm:p-5 mb-4">
+                    <div class="text-xs text-mine-muted font-mono mb-4">FIREBASE CONFIGURATION</div>
+                    <div class="space-y-3" id="firebase-fields"></div>
+                    <div class="flex gap-2 mt-4 flex-wrap">
+                        <button class="mbtn mbtn-accent text-sm" id="fb-connect">Connect Firebase</button>
+                        <button class="mbtn mbtn-outline text-sm" id="fb-disconnect">Use Local Only</button>
+                    </div>
+                    <div class="text-xs mt-2 font-mono" id="fb-status">Status: Local Storage</div>
+                </div>
+                <div class="mcard p-4 sm:p-5 mb-4">
+                    <div class="text-xs text-mine-muted font-mono mb-4">AI COMPANION</div>
+                    <div class="space-y-3">
+                        <div><label class="text-xs text-mine-muted">Provider</label><select id="ai-provider"
+                                class="w-full bg-mine-bg border border-mine-border rounded p-2 text-sm mt-1">
+                                <option value="none">None</option>
+                                <option value="ollama">Ollama (Local)</option>
+                                <option value="gemini">Gemini API</option>
+                                <option value="openrouter">OpenRouter</option>
+                            </select></div>
+                        <div><label class="text-xs text-mine-muted">API Key / Endpoint</label><input id="ai-key"
+                                class="w-full bg-mine-bg border border-mine-border rounded p-2 text-sm mt-1"
+                                placeholder="http://localhost:11434 or API key"></div>
+                        <div><label class="text-xs text-mine-muted">Model</label><input id="ai-model"
+                                class="w-full bg-mine-bg border border-mine-border rounded p-2 text-sm mt-1"
+                                placeholder="llama3, gemini-pro, etc."></div>
+                    </div>
+                    <button class="mbtn mbtn-cyan mt-4 text-sm" id="ai-save">Save AI Config</button>
+                </div>
+                <div class="mcard p-4 sm:p-5 mb-4">
+                    <div class="text-xs text-mine-muted font-mono mb-4">DATA MANAGEMENT</div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="mbtn mbtn-outline text-sm" id="data-export"><i
+                                class="fas fa-download mr-1"></i>Export Data</button>
+                        <button class="mbtn mbtn-outline text-sm" id="data-import"><i
+                                class="fas fa-upload mr-1"></i>Import Data</button>
+                        <button class="mbtn mbtn-danger text-sm" id="data-reset"><i class="fas fa-trash mr-1"></i>Reset
+                            All Data</button>
+                    </div>
+                </div>
+                <div class="mcard p-4 sm:p-5">
+                    <div class="text-xs text-mine-muted font-mono mb-4">PREFERENCES</div>
+                    <div class="space-y-3">
+                        <div><label class="text-xs text-mine-muted">Default Focus Mode</label><select
+                                id="pref-focus-mode"
+                                class="w-full bg-mine-bg border border-mine-border rounded p-2 text-sm mt-1">
+                                <option value="sprint">Sprint (15m)</option>
+                                <option value="focus" selected>Focus (45m)</option>
+                                <option value="deep">Deep Work (90m)</option>
+                                <option value="marathon">Marathon (180m)</option>
+                            </select></div>
+                        <div><label class="text-xs text-mine-muted">Sound Effects</label><select id="pref-sound"
+                                class="w-full bg-mine-bg border border-mine-border rounded p-2 text-sm mt-1">
+                                <option value="on">On</option>
+                                <option value="off">Off</option>
+                            </select></div>
+                    </div>
+                    <button class="mbtn mbtn-accent mt-4 text-sm" id="pref-save">Save Preferences</button>
+                </div>
+            </section>
+        </main>
+
+        <div id="ai-overlay" class="hidden fixed inset-0 bg-black/50 z-30 lg:hidden"></div>
+        <!-- RIGHT PANEL (Hidden on tablets, shown on desktop) -->
+        <aside id="right-panel" class="fixed top-0 right-0 h-full w-80 z-40
+         bg-mine-card/95 border-l border-mine-border
+         transform translate-x-full
+         transition-transform duration-300 ease-in-out
+         flex flex-col overflow-y-auto
+         lg:translate-x-0 lg:static lg:w-72">
+            <!-- MOBILE CLOSE BUTTON -->
+            <div class="lg:hidden flex justify-end p-3">
+                <button id="ai-close" class="w-10 h-10 rounded-full border border-mine-border">
+                    ✕
+                </button>
+            </div>
+
+            <div class="p-4 border-b border-mine-border">
+                <div class="text-xs text-mine-muted font-mono mb-2">ACTIVE MISSION</div>
+                <div id="rp-mission" class="text-sm text-mine-muted">No active mission</div>
+                <div id="rp-timer" class="font-display text-xl font-black text-mine-accent mt-1">--:--</div>
+            </div>
+            <div class="flex-1 flex flex-col p-4">
+                <div class="text-xs text-mine-muted font-mono mb-2">AI COMPANION</div>
+                <div class="flex gap-1 mb-3 flex-wrap" id="ai-role-btns"></div>
+                <div id="ai-chat" class="flex-1 overflow-y-auto space-y-2 mb-3 min-h-[200px]"></div>
+                <div class="flex gap-2">
+                    <input id="ai-input" class="flex-1 bg-mine-bg border border-mine-border rounded px-3 py-2 text-sm"
+                        placeholder="Talk to companion...">
+                    <button class="mbtn mbtn-cyan" id="ai-send"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+            <div class="p-4 border-t border-mine-border">
+                <div class="text-xs text-mine-muted font-mono mb-2">DAILY BOSS BATTLE</div>
+                <div id="boss-status" class="text-sm"></div>
+                <button class="mbtn mbtn-outline w-full mt-2 text-xs" id="boss-fight">End Day Report</button>
+            </div>
+        </aside>
+        <!-- MOBILE AI BUTTON -->
+        <button id="ai-toggle" class="lg:hidden fixed bottom-4 right-4 z-50
+       w-14 h-14 rounded-full
+       bg-cyan-500 text-white
+       shadow-lg flex items-center justify-center">
+
+            <i class="fas fa-robot"></i>
+        </button>
+    </div>
+
+    <input type="file" id="mission-photo" accept="image/*" capture="environment" hidden>
+
+    <!-- FOOTER -->
+    <footer
+        class="flex items-center justify-between px-4 py-1 border-t border-mine-border bg-mine-card/40 text-[10px] text-mine-muted font-mono flex-shrink-0 flex-wrap gap-2">
+        <span>MINED // CORE_OS v2.0.0</span>
+        <span id="footer-time"></span>
+        <span id="footer-db">DB: LocalStorage</span>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
